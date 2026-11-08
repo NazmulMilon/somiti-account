@@ -1,1 +1,102 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#087f5b">
+  <title>ফতেবাপুর উত্তর-পূর্ব পাড়া প্রবাসী কল্যাণ সমিতি</title>
+  <style>
+    :root{--green:#087f5b;--green2:#e8f7f0;--ink:#17231f;--muted:#66756e;--line:#e4ebe7;--bg:#f5f8f6}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,"Noto Sans Bengali",sans-serif}
+    .wrap{max-width:1050px;margin:auto;padding:22px 16px 48px}
+    header{background:linear-gradient(135deg,#087f5b,#16a36e);color:white;border-radius:18px;padding:28px 22px;text-align:center;box-shadow:0 8px 24px #087f5b22}
+    h1{font-size:clamp(21px,4vw,32px);margin:0 0 8px;line-height:1.5}header p{margin:0;color:#e6fff4}
+    .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+    .card{background:white;border:1px solid var(--line);border-radius:14px;padding:18px}
+    .label{color:var(--muted);font-size:14px}.value{font-size:clamp(23px,4vw,30px);font-weight:750;margin-top:5px;color:var(--green)}
+    .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:20px 0 12px;flex-wrap:wrap}
+    .toolbar h2{font-size:20px;margin:0}.search{flex:1;min-width:220px;max-width:380px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;background:white}
+    .tablebox{background:white;border:1px solid var(--line);border-radius:14px;overflow:auto}
+    table{border-collapse:collapse;width:100%;min-width:720px}th,td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--line);font-size:14px}
+    th{background:#eff8f3;color:#245b46;font-weight:700;white-space:nowrap}tbody tr:last-child td{border-bottom:0}
+    .money{font-weight:700;white-space:nowrap}.pill{display:inline-block;background:var(--green2);color:#08704f;padding:4px 9px;border-radius:20px;font-size:12px}
+    .muted{color:var(--muted)}.status{padding:14px;color:var(--muted);text-align:center}.foot{text-align:center;color:var(--muted);font-size:12px;margin-top:18px}
+    @media(max-width:600px){.wrap{padding:14px 10px 32px}.cards{gap:9px}.card{padding:14px}.toolbar{align-items:stretch}.search{max-width:none;width:100%}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ফতেবাপুর উত্তর-পূর্ব পাড়া<br>প্রবাসী কল্যাণ সমিতি</h1>
+    <p>সমিতির জমা ও খরচের হিসাব</p>
+  </header>
+  <section class="cards">
+    <div class="card"><div class="label">সর্বমোট জমা</div><div class="value" id="total">লোড হচ্ছে...</div></div>
+    <div class="card"><div class="label">সর্বমোট কতজনে টাকা দিয়েছে?</div><div class="value" id="count">—</div></div>
+  </section>
+  <div class="toolbar">
+    <h2>সদস্যদের জমার তালিকা</h2>
+    <input id="search" class="search" type="search" placeholder="নাম, তারিখ বা মাধ্যম দিয়ে খুঁজুন...">
+  </div>
+  <div class="tablebox">
+    <table>
+      <thead><tr><th>সদস্যের নাম</th><th>জমার পরিমাণ</th><th>তারিখ</th><th>মাধ্যম</th><th>মোবাইলের শেষ ৪ ডিজিট</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5" class="status">হিসাব লোড হচ্ছে...</td></tr></tbody>
+    </table>
+  </div>
+  <div class="foot">সর্বশেষ আপডেট: <span id="updated">—</span><br> নাজমুল হাসান মিলন </div>
+</div>
+<script>
+  // Apps Script Web App URL বসাও (শেষে /exec থাকবে)।
+  const API_URL = "https://script.google.com/macros/s/AKfycbxTFUrEKL3l9uUnncLkE2hwSPFH8BdOEt3LxrCsG2oBnHngV_9R2hnTo7jqvTR-VRqa/exec";
+  let allRecords = [];
 
+  function loadData() {
+    if (API_URL.includes("PASTE_YOUR")) {
+      document.getElementById("rows").innerHTML = '<tr><td colspan="5" class="status">প্রথমে index.html ফাইলে Apps Script URL বসাতে হবে।</td></tr>';
+      document.getElementById("total").textContent = "—";
+      return;
+    }
+    const callbackName = "sheetCallback";
+    window[callbackName] = function(data) {
+      if (!data.success) {
+        document.getElementById("rows").innerHTML = '<tr><td colspan="5" class="status">ডেটা পাওয়া যায়নি: ' + escapeHtml(data.error) + '</td></tr>';
+        return;
+      }
+      allRecords = data.records || [];
+      document.getElementById("total").textContent = "৳ " + data.totalText;
+      document.getElementById("count").textContent = data.memberCount;
+      document.getElementById("updated").textContent = data.updatedAt;
+      render(allRecords);
+    };
+    const script = document.createElement("script");
+    script.src = API_URL + (API_URL.includes("?") ? "&" : "?") + "callback=" + callbackName + "&t=" + Date.now();
+    script.onerror = () => document.getElementById("rows").innerHTML = '<tr><td colspan="5" class="status">ডেটা লোড হয়নি। Apps Script deployment access পরীক্ষা করুন।</td></tr>';
+    document.body.appendChild(script);
+  }
+  function render(records) {
+    const tbody = document.getElementById("rows");
+    if (!records.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="status">কোনো হিসাব পাওয়া যায়নি।</td></tr>'; return;
+    }
+    tbody.innerHTML = records.map(r => `<tr>
+      <td>${escapeHtml(r.name)}</td>
+      <td class="money">৳ ${escapeHtml(r.amountText)}</td>
+      <td>${escapeHtml(r.date)}</td>
+      <td>${r.method ? '<span class="pill">'+escapeHtml(r.method)+'</span>' : '<span class="muted">—</span>'}</td>
+      <td>${escapeHtml(r.last4 || "—")}</td>
+    </tr>`).join("");
+  }
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  document.getElementById("search").addEventListener("input", e => {
+    const q = e.target.value.trim().toLowerCase();
+    render(allRecords.filter(r => [r.name,r.date,r.method,r.last4,r.amountText].join(" ").toLowerCase().includes(q)));
+  });
+  loadData();
+  // প্রতি ৫ মিনিটে Sheet থেকে নতুন হিসাব আনা হবে।
+  setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
